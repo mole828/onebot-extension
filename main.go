@@ -2,12 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/gorilla/websocket"
 	"github.com/mole828/onebot-extension/onebot"
+	"github.com/samber/lo"
 )
 
 var target = "ws://10.0.0.42:7780" // 目标服务器地址
@@ -55,7 +55,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err := json.Unmarshal(message, ret); err == nil {
 			if ret.Echo == "getFriendList" {
 				var getFriendListRet = new(onebot.GetFriendListRet)
-				fmt.Println(len(getFriendListRet.Data))
+				json.Unmarshal(message, getFriendListRet)
+				data := lo.UniqBy[onebot.User, int](getFriendListRet.Data, func(user onebot.User) int {
+					return user.UserId
+				})
+				getFriendListRet.Data = data
+				message, _ = json.Marshal(getFriendListRet)
 			}
 		}
 		if err := clientConn.WriteMessage(messageType, message); err != nil {
